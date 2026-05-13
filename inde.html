@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="戰情室">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#040A14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>豐勝戰隊 選股戰情室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+TC:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#FFD700; --red:#FF3B3B; --blue:#00BFFF; --green:#00FF88;
+  --orange:#FF8C00; --bg:#040A14; --panel:rgba(4,14,30,0.92);
+  --border:rgba(0,191,255,0.3); --dim:#4a6a8a;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:#ddeeff;font-family:'Noto Sans TC',sans-serif;}
+
+/* Grid bg */
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,191,255,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,191,255,.03)1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;z-index:0;}
+
+/* ── APP SHELL ── */
+#app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:1;
+  padding-top:var(--safe-top);}
+
+/* ── TOP BAR ── */
+#topbar{
+  background:rgba(4,10,22,0.98);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px 8px;
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(12px);
+}
+.tb-title{
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:900;
+  background:linear-gradient(90deg,var(--gold),#fff,var(--gold));
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmer 3s linear infinite;
+}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+.tb-right{display:flex;align-items:center;gap:8px;}
+.live-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.25);
+  border-radius:20px;padding:3px 10px;
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--green);
+}
+.dot{width:6px;height:6px;background:var(--green);border-radius:50%;
+  box-shadow:0 0 6px var(--green);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+#btn-install{
+  background:linear-gradient(135deg,#8B6914,var(--gold));
+  border:none;border-radius:20px;padding:4px 12px;
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:#000;font-weight:700;cursor:pointer;
+  display:none;letter-spacing:.5px;
+}
+#btn-install.show{display:block;}
+
+/* ── TABS ── */
+#tabs{
+  display:flex;background:rgba(4,10,22,.95);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tab{
+  flex:1;padding:10px 4px;text-align:center;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:10px;
+  letter-spacing:1px;color:var(--dim);transition:all .2s;
+  border-bottom:2px solid transparent;
+}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-icon{font-size:16px;display:block;margin-bottom:2px;}
+
+/* ── PAGES ── */
+#pages{flex:1;overflow:hidden;position:relative;}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding:12px 12px;padding-bottom:calc(12px + var(--safe-bot));
+  display:none;-webkit-overflow-scrolling:touch;}
+.page.active{display:block;}
+
+/* scrollbar */
+.page::-webkit-scrollbar{width:3px;}
+.page::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:14px;margin-bottom:10px;
+  position:relative;overflow:hidden;
+}
+.card-gold{border-color:rgba(255,215,0,.4);}
+.card::before{content:'';position:absolute;top:0;left:0;
+  width:2px;height:100%;background:var(--blue);}
+.card-gold::before{background:var(--gold);}
+
+.section-lbl{
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  letter-spacing:3px;color:var(--dim);text-transform:uppercase;
+  margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.section-lbl::after{content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,var(--border),transparent);}
+
+/* ── CRITERIA CARDS ── */
+.crit-card{
+  background:rgba(0,10,25,.7);border:1px solid var(--border);
+  border-radius:8px;padding:12px;margin-bottom:8px;
+  display:flex;align-items:flex-start;gap:12px;
+  cursor:pointer;transition:all .2s;
+}
+.crit-card.on{border-color:var(--gold);background:rgba(255,215,0,.04);}
+.crit-num{
+  font-family:'Orbitron',monospace;font-size:20px;font-weight:900;
+  color:var(--gold);opacity:.25;flex-shrink:0;width:28px;line-height:1;
+}
+.crit-card.on .crit-num{opacity:1;}
+.crit-body{flex:1;}
+.crit-title{font-size:13px;font-weight:700;color:#cce4ff;margin-bottom:3px;}
+.crit-card.on .crit-title{color:var(--gold);}
+.crit-desc{font-size:11px;color:var(--dim);line-height:1.5;}
+.crit-badge{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  border:1.5px solid var(--dim);display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--dim);margin-top:2px;transition:all .2s;
+}
+.crit-card.on .crit-badge{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.1);}
+
+/* ── FILTERS ── */
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.f-group label{
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  letter-spacing:2px;color:var(--dim);display:block;margin-bottom:4px;
+}
+.f-group input,.f-group select{
+  width:100%;background:rgba(0,8,20,.8);
+  border:1px solid rgba(0,191,255,.2);border-radius:6px;
+  color:#e0eeff;font-family:'Share Tech Mono',monospace;font-size:13px;
+  padding:8px 10px;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+.f-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a6a8a'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;}
+.f-group input:focus,.f-group select:focus{border-color:var(--blue);}
+
+.btn-screen{
+  width:100%;background:linear-gradient(135deg,#8B6914,var(--gold),#8B6914);
+  border:none;border-radius:8px;padding:14px;
+  font-family:'Orbitron',monospace;font-weight:700;font-size:13px;
+  letter-spacing:2px;color:#000;cursor:pointer;
+  transition:all .15s;margin-top:4px;
+}
+.btn-screen:active{transform:scale(.98);opacity:.9;}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.stat-box{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:10px 8px;text-align:center;
+}
+.stat-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--gold);}
+.stat-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;
+  color:var(--dim);margin-top:2px;text-transform:uppercase;}
+
+/* ── STOCK LIST ── */
+.stock-row{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:12px;margin-bottom:8px;
+  cursor:pointer;transition:all .15s;
+  display:flex;align-items:stretch;gap:0;overflow:hidden;
+  position:relative;
+}
+.stock-row:active{transform:scale(.99);}
+.stock-row.s-gold{border-color:rgba(255,215,0,.4);}
+.stock-left-bar{width:3px;background:var(--blue);border-radius:2px;flex-shrink:0;margin-right:12px;}
+.stock-row.s-gold .stock-left-bar{background:var(--gold);}
+
+.sr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.sr-code{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:var(--blue);}
+.sr-name{font-size:11px;color:var(--dim);margin-top:1px;}
+.sr-score-wrap{text-align:right;}
+.sr-score{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;}
+.sr-score-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;}
+
+.sr-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;}
+.sr-m{background:rgba(0,10,25,.6);border-radius:5px;padding:5px 6px;text-align:center;}
+.sr-m-val{font-family:'Share Tech Mono',monospace;font-size:12px;}
+.sr-m-lbl{font-size:9px;color:var(--dim);margin-top:1px;}
+
+.sr-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.tag{display:inline-block;padding:2px 7px;border-radius:3px;
+  font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.5px;}
+.t-rev{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.25);}
+.t-gm{background:rgba(0,255,136,.08);color:var(--green);border:1px solid rgba(0,255,136,.2);}
+.t-op{background:rgba(0,191,255,.08);color:var(--blue);border:1px solid rgba(0,191,255,.2);}
+.t-inst{background:rgba(255,140,0,.08);color:var(--orange);border:1px solid rgba(255,140,0,.2);}
+.t-hist{background:rgba(255,60,60,.1);color:var(--red);border:1px solid rgba(255,60,60,.2);}
+
+.num-up{color:var(--red);}
+.num-dn{color:#00cc66;}
+.num-n{color:#8aaccc;}
+
+/* ── DETAIL SHEET ── */
+#detail-sheet{
+  position:fixed;inset:0;z-index:100;
+  display:flex;align-items:flex-end;
+  background:rgba(0,0,0,.6);
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+#detail-sheet.open{opacity:1;pointer-events:all;}
+#detail-inner{
+  width:100%;max-height:88vh;background:#060f22;
+  border-radius:20px 20px 0 0;border-top:1px solid var(--gold);
+  border-left:1px solid var(--border);border-right:1px solid var(--border);
+  overflow-y:auto;padding:0 0 calc(20px + var(--safe-bot));
+  transform:translateY(100%);transition:transform .3s ease;
+  -webkit-overflow-scrolling:touch;
+}
+#detail-sheet.open #detail-inner{transform:translateY(0);}
+
+.sheet-handle{
+  width:40px;height:4px;background:var(--border);border-radius:2px;
+  margin:12px auto 0;cursor:pointer;
+}
+.sheet-header{
+  padding:14px 16px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:#060f22;z-index:1;
+}
+.sh-code{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--gold);}
+.sh-name{font-size:12px;color:var(--dim);margin-top:2px;}
+.sh-close{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.3);
+  color:var(--red);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.sheet-body{padding:14px 16px;}
+
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+.m-box{background:rgba(0,10,25,.7);border:1px solid rgba(0,191,255,.12);
+  border-radius:8px;padding:12px;}
+.m-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;
+  color:var(--dim);text-transform:uppercase;margin-bottom:5px;}
+.m-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;line-height:1;}
+
+.analysis-box{
+  background:rgba(0,10,25,.7);border:1px solid rgba(0,191,255,.12);
+  border-radius:8px;padding:14px;font-size:12px;color:#9ab8d4;line-height:1.8;
+}
+.analysis-box strong{color:var(--gold);}
+.analysis-box .rw{color:var(--red);}
+
+/* ── SCORE COLOR ── */
+.sc-a{color:var(--gold);}
+.sc-b{color:var(--blue);}
+.sc-c{color:#8aaccc;}
+
+/* ── INST SUB-OPTIONS ── */
+.inst-subopts{
+  margin-top:10px;padding:10px 0 2px;
+  border-top:1px solid rgba(0,191,255,.15);
+}
+.sub-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;
+}
+.sub-lbl{
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;
+  color:var(--dim);white-space:nowrap;min-width:48px;
+}
+.sub-btns{display:flex;gap:5px;flex-wrap:wrap;}
+.sub-btn{
+  background:rgba(0,10,25,.7);
+  border:1px solid rgba(0,191,255,.2);
+  border-radius:5px;padding:5px 10px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:#8aaccc;cursor:pointer;transition:all .15s;
+  white-space:nowrap;
+}
+.sub-btn.active{
+  background:rgba(255,215,0,.12);
+  border-color:var(--gold);color:var(--gold);
+}
+.sub-btn:active{transform:scale(.95);}
+
+/* ── SPRING BUTTONS ── */
+.spring-btn{
+  width:100%;background:rgba(0,10,25,.7);
+  border:1px solid rgba(0,191,255,.2);border-radius:7px;
+  padding:9px 12px;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;gap:10px;text-align:left;
+}
+.spring-btn.active{
+  background:rgba(0,255,136,.06);
+  border-color:rgba(0,255,136,.35);
+}
+.spring-btn:active{transform:scale(.98);}
+.spring-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center;}
+.spring-info{flex:1;display:flex;flex-direction:column;gap:2px;}
+.spring-name{
+  font-size:12px;font-weight:700;color:#cce4ff;
+  font-family:'Noto Sans TC',sans-serif;
+}
+.spring-btn.active .spring-name{color:var(--green);}
+.spring-desc{
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--dim);letter-spacing:.3px;line-height:1.4;
+}
+.spring-check{
+  font-family:'Share Tech Mono',monospace;font-size:13px;
+  color:var(--dim);flex-shrink:0;
+}
+.spring-btn.active .spring-check{color:var(--green);}
+
+/* ── RISK BADGE ── */
+.risk{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+}
+.risk-L{background:rgba(0,255,136,.1);border:1px solid var(--green);color:var(--green);}
+.risk-M{background:rgba(255,140,0,.1);border:1px solid var(--orange);color:var(--orange);}
+.risk-H{background:rgba(255,60,60,.1);border:1px solid var(--red);color:var(--red);}
+
+/* ── EMPTY ── */
+.empty{
+  text-align:center;padding:48px 24px;
+  font-family:'Share Tech Mono',monospace;color:var(--dim);font-size:12px;
+  letter-spacing:2px;
+}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
+
+/* ── DISCLAIMER ── */
+.disclaimer{
+  margin-top:10px;padding:12px;background:rgba(255,60,60,.04);
+  border:1px solid rgba(255,60,60,.15);border-radius:8px;
+  font-size:10px;color:rgba(150,150,150,.7);line-height:1.7;
+  font-family:'Share Tech Mono',monospace;
+}
+.disclaimer strong{color:rgba(255,100,100,.8);}
+
+/* ── ABOUT PAGE ── */
+.about-hero{
+  text-align:center;padding:20px 0 16px;
+}
+.about-hero .big{
+  font-family:'Orbitron',monospace;font-size:42px;font-weight:900;
+  color:var(--gold);line-height:1;text-shadow:0 0 30px rgba(255,215,0,.4);
+}
+.about-hero .sub{
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:3px;color:var(--blue);margin-top:8px;
+}
+
+.install-steps{counter-reset:step;}
+.install-step{
+  display:flex;gap:12px;padding:12px 0;
+  border-bottom:1px solid rgba(0,191,255,.08);
+  counter-increment:step;
+}
+.install-step:last-child{border-bottom:none;}
+.step-num{
+  flex-shrink:0;width:28px;height:28px;border-radius:50%;
+  background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);
+  font-family:'Orbitron',monospace;font-size:12px;font-weight:700;
+  color:var(--gold);display:flex;align-items:center;justify-content:center;
+}
+.step-text{font-size:12px;color:#9ab8d4;line-height:1.6;padding-top:4px;}
+.step-text strong{color:#ddeeff;}
+
+.ios-note,.android-note{
+  padding:10px 14px;border-radius:8px;margin-bottom:8px;
+  font-size:11px;line-height:1.7;
+}
+.ios-note{background:rgba(0,191,255,.05);border:1px solid rgba(0,191,255,.2);color:#8aaccc;}
+.android-note{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);color:#7acca0;}
+
+@media(max-width:360px){
+  .sr-metrics{grid-template-columns:repeat(3,1fr);}
+  .metrics-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="tb-title">⚔ 豐勝戰情室</div>
+    <div class="tb-right">
+      <div class="live-pill"><span class="dot"></span>LIVE</div>
+      <button id="btn-install" onclick="installPWA()">＋ 安裝</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <div class="tab active" onclick="switchTab('screen')">
+      <span class="tab-icon">🎯</span>篩選
+    </div>
+    <div class="tab" onclick="switchTab('result')">
+      <span class="tab-icon">📊</span>結果
+    </div>
+    <div class="tab" onclick="switchTab('about')">
+      <span class="tab-icon">📲</span>安裝
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div id="pages">
+
+    <!-- ══ SCREEN PAGE ══ -->
+    <div class="page active" id="page-screen">
+
+      <div class="section-lbl">▸ 核心作戰條件</div>
+      <div id="crit-list"></div>
+
+      <div class="section-lbl" style="margin-top:14px">▸ 過濾參數</div>
+      <div class="card">
+        <div class="f-row">
+          <div class="f-group">
+            <label>產業類別</label>
+            <select id="f-sector">
+              <option value="">全部</option>
+              <option value="半導體">半導體</option>
+              <option value="電子零組件">電子零組件</option>
+              <option value="光通訊">光通訊/CPO</option>
+              <option value="AI伺服器">AI伺服器</option>
+              <option value="散熱">散熱/機構</option>
+            </select>
+          </div>
+          <div class="f-group">
+            <label>綜合評分</label>
+            <select id="f-score">
+              <option value="0">全部（81-97）</option>
+              <option value="90" selected>90+ 強力推薦</option>
+              <option value="85">85+ 優選</option>
+              <option value="82">82+ 觀察</option>
+            </select>
+          </div>
+        </div>
+        <div class="f-row">
+          <div class="f-group">
+            <label>營收 YoY 最低%</label>
+            <select id="f-rev">
+              <option value="0">不限（≥0%）</option>
+              <option value="10">≥10%</option>
+              <option value="15">≥15%</option>
+              <option value="20">≥20%</option>
+              <option value="28">≥28%（現有全部）</option>
+              <option value="40" selected>≥40%（高成長）</option>
+              <option value="55">≥55%（強勁）</option>
+              <option value="80">≥80%（爆發）</option>
+              <option value="100">≥100%（翻倍）</option>
+            </select>
+          </div>
+          <div class="f-group">
+            <label>毛利率最低%</label>
+            <select id="f-gm">
+              <option value="0">不限（≥0%）</option>
+              <option value="10">≥10%</option>
+              <option value="15">≥15%</option>
+              <option value="20">≥20%</option>
+              <option value="32">≥32%（現有全部）</option>
+              <option value="36" selected>≥36%（中高）</option>
+              <option value="40">≥40%（優質）</option>
+              <option value="48">≥48%（高毛利）</option>
+              <option value="60">≥60%（頂級）</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-screen" id="screen-btn" onclick="runScreen()">⚡ 開始篩選</button>
+      </div>
+
+      <div class="disclaimer">
+        <strong>⚠ 風險警示：</strong>本系統資料僅供研究參考，不構成投資建議。投資涉及市場、流動性等多重風險，請自行評估並諮詢專業顧問。
+      </div>
+    </div>
+
+    <!-- ══ RESULT PAGE ══ -->
+    <div class="page" id="page-result">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="st-count">0</div>
+          <div class="stat-lbl">符合標的</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="st-rev" style="color:var(--red)">-</div>
+          <div class="stat-lbl">均 YoY</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="st-gm" style="color:var(--green)">-</div>
+          <div class="stat-lbl">均毛利率</div>
+        </div>
+      </div>
+
+      <div class="section-lbl">▸ 篩選結果 — 點擊查看分析</div>
+      <div id="stock-list"></div>
+    </div>
+
+    <!-- ══ ABOUT / INSTALL PAGE ══ -->
+    <div class="page" id="page-about">
+      <div class="about-hero">
+        <div class="big">⚔</div>
+        <div style="font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--gold);margin-top:8px;">豐勝戰隊</div>
+        <div class="sub">選股戰情室 · 第27大隊條件</div>
+      </div>
+
+      <div class="card card-gold" style="margin-bottom:10px;">
+        <div class="section-lbl">▸ 功能說明</div>
+        <div style="font-size:12px;color:#9ab8d4;line-height:1.8;">
+          本 App 整合三大選股條件：<strong style="color:var(--gold)">①4月營收歷史新高</strong>、<strong style="color:var(--gold)">②Q1毛利率季增</strong>、<strong style="color:var(--gold)">③Q1營益率季增</strong>，配合法人籌碼過濾，輸出綜合評分排行。
+          支援離線使用，所有資料儲存於本機。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-lbl">▸ 加入主畫面教學</div>
+
+        <div class="ios-note">
+          🍎 <strong>iPhone / iPad (Safari)</strong>
+        </div>
+        <div class="install-steps" style="padding:0 4px;">
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div class="step-text">用 <strong>Safari</strong> 開啟此頁面（Chrome/Line 內建瀏覽器不支援）</div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div class="step-text">點下方工具列的 <strong>分享按鈕</strong> 「□↑」</div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <div class="step-text">向下滑動選單，點選 <strong>「加入主畫面」</strong></div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">4</div>
+            <div class="step-text">名稱保持「戰情室」，點右上角 <strong>「新增」</strong> 完成</div>
+          </div>
+        </div>
+
+        <div class="android-note" style="margin-top:12px;">
+          🤖 <strong>Android (Chrome)</strong>
+        </div>
+        <div class="install-steps" style="padding:0 4px;">
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div class="step-text">點右上角三點選單 <strong>「⋮」</strong></div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div class="step-text">選擇 <strong>「新增至主畫面」</strong> 或頂部的安裝橫幅</div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <div class="step-text">點 <strong>「安裝」</strong> 確認，圖示將出現在主畫面</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:10px;">
+        <div class="section-lbl">▸ FinMind Token 設定</div>
+        <div style="font-size:11px;color:#9ab8d4;margin-bottom:10px;line-height:1.7;">
+          Token 儲存於本機，不會上傳。若需更換，於下方貼上新 Token 後點「儲存」。
+        </div>
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <input id="token-input" type="password"
+            style="flex:1;background:rgba(0,8,20,.8);border:1px solid rgba(0,191,255,.25);
+            border-radius:6px;color:#e0eeff;font-family:'Share Tech Mono',monospace;
+            font-size:11px;padding:8px 10px;outline:none;"
+            placeholder="貼上新 Token...">
+          <button onclick="applyToken()"
+            style="background:linear-gradient(135deg,#8B6914,var(--gold));border:none;
+            border-radius:6px;padding:8px 16px;font-family:'Orbitron',monospace;
+            font-weight:700;font-size:11px;color:#000;cursor:pointer;white-space:nowrap;">
+            儲存
+          </button>
+        </div>
+        <div id="token-status" style="margin-top:8px;font-family:'Share Tech Mono',monospace;
+          font-size:10px;color:var(--green);">
+          ✓ Token 已載入
+        </div>
+      </div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);line-height:2;">
+          版本：v1.0.0<br>
+          作戰準則：豐勝戰隊第27大隊<br>
+          支援離線：✓<br>
+          資料更新：手動輸入<br>
+          平台：iOS Safari / Android Chrome
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+</div><!-- /app -->
+
+<!-- DETAIL BOTTOM SHEET -->
+<div id="detail-sheet" onclick="sheetBgClick(event)">
+  <div id="detail-inner">
+    <div class="sheet-handle" onclick="closeSheet()"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sh-code" id="sh-code">--</div>
+        <div class="sh-name" id="sh-name">--</div>
+      </div>
+      <div class="sh-close" onclick="closeSheet()">✕</div>
+    </div>
+    <div class="sheet-body">
+      <div class="metrics-grid" id="sh-metrics"></div>
+      <div class="section-lbl">▸ 投資分析與風險</div>
+      <div class="analysis-box" id="sh-analysis"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const STOCKS = [
+  // inst_f=外資連買日, inst_t=投信連買日, spring=彈簧型態陣列(可多個)
+  // spring類型: 'narrow'窄幅盤整, 'low_vol'量縮, 'ma_support'均線撐, 'chip_accum'籌碼累積, 'bb_squeeze'布林收縮, 'none'無型態
+  { code:'4966', name:'譜瑞-KY', sector:'光通訊', rev_yoy:98, rev_mom:22, gm:62.8, gm_chg:4.1, op:38.2, op_chg:5.0, inst:'外資+投信', inst_f:12, inst_t:8, score:97, risk:'M', hist:true, tags:['rev','gm','op','inst'],
+    spring:['chip_accum','ma_support'],
+    analysis:'譜瑞-KY聚焦CPO控制IC，4月營收<strong>再創歷史峰值</strong>，受惠800G/1.6T光模組需求爆發。Q1毛利率62.8%季增4.1pp，本業獲利能力突出。<br><br><span class="rw">⚠ 風險：</span>CPO技術路線存不確定性；股價波動劇烈，建議嚴格設定停損。',
+    metrics:{'4月營收':'14.6億','YoY':'↑98%','Q1毛利率':'62.8%','Q1營益率':'38.2%','外資連買':'12日','投信連買':'8日'}},
+  { code:'6669', name:'緯穎', sector:'AI伺服器', rev_yoy:145, rev_mom:18, gm:35.1, gm_chg:1.9, op:22.3, op_chg:2.4, inst:'外資', inst_f:18, inst_t:0, score:93, risk:'M', hist:true, tags:['rev','gm','op'],
+    spring:['narrow','low_vol','bb_squeeze'],
+    analysis:'緯穎4月營收較去年同期大幅成長<strong>145%</strong>，Blackwell GPU伺服器出貨急增。Q1毛利率35.1%回升，高規伺服器毛利貢獻提升。<br><br><span class="rw">⚠ 風險：</span>客戶集中於少數CSP；本益比35x估值偏高，需追蹤訂單能見度。',
+    metrics:{'4月營收':'186億','YoY':'↑145%','Q1毛利率':'35.1%','Q1營益率':'22.3%','外資連買':'18日','投信連買':'—'}},
+  { code:'2379', name:'瑞昱', sector:'半導體', rev_yoy:82, rev_mom:12, gm:54.2, gm_chg:2.8, op:28.6, op_chg:3.1, inst:'外資+投信', inst_f:15, inst_t:11, score:95, risk:'L', hist:true, tags:['rev','gm','op','inst'],
+    spring:['chip_accum','low_vol','ma_support'],
+    analysis:'瑞昱4月營收<strong>創歷史新高</strong>，Wi-Fi 7晶片與以太網路控制器需求強勁。Q1毛利率54.2%季增2.8pp，產品組合優化效益顯著。<br><br><span class="rw">⚠ 風險：</span>消費電子需求疲軟、MediaTek競爭降價均可能壓抑估值。',
+    metrics:{'4月營收':'38.2億','YoY':'↑82%','Q1毛利率':'54.2%','Q1營益率':'28.6%','外資連買':'15日','投信連買':'11日'}},
+  { code:'3008', name:'大立光', sector:'電子零組件', rev_yoy:28, rev_mom:5, gm:68.3, gm_chg:2.1, op:52.1, op_chg:2.6, inst:'外資', inst_f:7, inst_t:0, score:90, risk:'L', hist:false, tags:['gm','op','inst'],
+    spring:['ma_support'],
+    analysis:'Q1毛利率68.3%、營益率52.1%，均為本次篩選中本業獲利最強。高階鏡頭ASP持續提升，潛望式比重擴大。<br><br><span class="rw">⚠ 風險：</span>蘋果供應鏈集中，iPhone出貨不如預期將直接衝擊。',
+    metrics:{'4月營收':'48.1億','YoY':'↑28%','Q1毛利率':'68.3%','Q1營益率':'52.1%','外資連買':'7日','投信連買':'—'}},
+  { code:'8299', name:'群聯', sector:'半導體', rev_yoy:47, rev_mom:11, gm:44.8, gm_chg:2.0, op:23.4, op_chg:2.3, inst:'外資+投信', inst_f:10, inst_t:13, score:86, risk:'L', hist:true, tags:['rev','gm','op','inst'],
+    spring:['narrow','chip_accum'],
+    analysis:'4月營收<strong>創歷史新高</strong>，AI推理端側SSD需求爆發，NAND Flash漲價週期帶動庫存回補。毛利率44.8%季增穩健。<br><br><span class="rw">⚠ 風險：</span>NAND Flash週期性高，供給過剩將提前反轉。',
+    metrics:{'4月營收':'56.2億','YoY':'↑47%','Q1毛利率':'44.8%','Q1營益率':'23.4%','外資連買':'10日','投信連買':'13日'}},
+  { code:'6488', name:'環球晶', sector:'半導體', rev_yoy:42, rev_mom:9, gm:41.2, gm_chg:1.8, op:24.5, op_chg:2.1, inst:'外資', inst_f:6, inst_t:0, score:85, risk:'L', hist:true, tags:['rev','gm','op'],
+    spring:['low_vol','ma_support'],
+    analysis:'4月營收<strong>創歷史新高</strong>，12吋矽晶圓需求回溫，AI晶片帶動高品質晶圓需求。長約換新帶動ASP逐季提升。<br><br><span class="rw">⚠ 風險：</span>矽晶圓週期性顯著；記憶體客戶削減資本支出將縮短能見度。',
+    metrics:{'4月營收':'72.8億','YoY':'↑42%','Q1毛利率':'41.2%','Q1營益率':'24.5%','外資連買':'6日','投信連買':'—'}},
+  { code:'3015', name:'全漢', sector:'散熱', rev_yoy:54, rev_mom:8, gm:38.7, gm_chg:3.2, op:19.4, op_chg:2.8, inst:'投信', inst_f:0, inst_t:15, score:88, risk:'L', hist:true, tags:['rev','gm','op','inst'],
+    spring:['chip_accum','narrow','low_vol'],
+    analysis:'4月營收<strong>歷史新高</strong>，AI伺服器高效率電源供應器出貨量大增。Q1毛利率38.7%季增3.2pp，為近年最高。投信連續買超15日。<br><br><span class="rw">⚠ 風險：</span>伺服器建置週期若放緩，訂單能見度下降；原材料成本具上行壓力。',
+    metrics:{'4月營收':'28.4億','YoY':'↑54%','Q1毛利率':'38.7%','Q1營益率':'19.4%','外資連買':'—','投信連買':'15日'}},
+  { code:'2383', name:'台光電', sector:'電子零組件', rev_yoy:65, rev_mom:14, gm:36.8, gm_chg:2.5, op:21.2, op_chg:3.0, inst:'投信', inst_f:2, inst_t:9, score:87, risk:'M', hist:true, tags:['rev','gm','op','inst'],
+    spring:['bb_squeeze','chip_accum'],
+    analysis:'4月營收<strong>創歷史新高</strong>，高速銅箔基板M7N/M8系列出貨大增。毛利率從34.3%升至36.8%，規模效益顯現。<br><br><span class="rw">⚠ 風險：</span>客戶集中於台系PCB廠；環氧樹脂成本具上行壓力。',
+    metrics:{'4月營收':'32.6億','YoY':'↑65%','Q1毛利率':'36.8%','Q1營益率':'21.2%','外資連買':'2日','投信連買':'9日'}},
+  { code:'2454', name:'聯發科', sector:'半導體', rev_yoy:33, rev_mom:6, gm:48.6, gm_chg:1.5, op:26.3, op_chg:1.8, inst:'外資', inst_f:9, inst_t:0, score:83, risk:'L', hist:false, tags:['gm','op','inst'],
+    spring:['ma_support'],
+    analysis:'Q1毛利率48.6%、營益率26.3%均優於前季，天璣9400旗艦毛利貢獻正面；AI PC與汽車晶片新產品逐步放量。<br><br><span class="rw">⚠ 風險：</span>手機市場回溫不確定；美對中出口限制若擴大，可能衝擊客戶結構。',
+    metrics:{'4月營收':'486億','YoY':'↑33%','Q1毛利率':'48.6%','Q1營益率':'26.3%','外資連買':'9日','投信連買':'—'}},
+  { code:'6121', name:'新普', sector:'電子零組件', rev_yoy:38, rev_mom:7, gm:32.4, gm_chg:1.4, op:16.8, op_chg:1.9, inst:'投信', inst_f:0, inst_t:5, score:82, risk:'L', hist:true, tags:['rev','gm','op'],
+    spring:['none'],
+    analysis:'4月營收<strong>創歷史新高</strong>，電池模組受惠電動車與儲能雙驅動。毛利率32.4%較上季31.0%提升，原料成本管控成效顯現。<br><br><span class="rw">⚠ 風險：</span>電動車滲透率若不如預期；鋰電池正極材料價格具下行不確定性。',
+    metrics:{'4月營收':'52.3億','YoY':'↑38%','Q1毛利率':'32.4%','Q1營益率':'16.8%','外資連買':'—','投信連買':'5日'}},
+  { code:'6274', name:'台燿', sector:'電子零組件', rev_yoy:78, rev_mom:16, gm:33.5, gm_chg:2.2, op:18.6, op_chg:2.5, inst:'投信', inst_f:0, inst_t:7, score:84, risk:'M', hist:true, tags:['rev','gm','op','inst'],
+    spring:['narrow','bb_squeeze'],
+    analysis:'4月營收<strong>創歷史新高</strong>，高頻高速銅箔基板受AI伺服器與毫米波天線雙驅動，產能滿載加產品升級雙效果推升毛利率。<br><br><span class="rw">⚠ 風險：</span>市值規模小，籌碼集中度需持續追蹤。',
+    metrics:{'4月營收':'18.4億','YoY':'↑78%','Q1毛利率':'33.5%','Q1營益率':'18.6%','外資連買':'—','投信連買':'7日'}},
+  { code:'6271', name:'同欣電', sector:'電子零組件', rev_yoy:52, rev_mom:10, gm:37.3, gm_chg:1.7, op:20.8, op_chg:2.0, inst:'投信', inst_f:0, inst_t:4, score:81, risk:'M', hist:true, tags:['rev','gm','op'],
+    spring:['low_vol','chip_accum'],
+    analysis:'4月營收<strong>創歷史新高</strong>，AI視覺晶片封裝需求帶動，車用感測器封裝持續放量。毛利率37.3%季增1.7pp。<br><br><span class="rw">⚠ 風險：</span>IC封裝競爭激烈；車用終端滲透速度具不確定性。',
+    metrics:{'4月營收':'24.1億','YoY':'↑52%','Q1毛利率':'37.3%','Q1營益率':'20.8%','外資連買':'—','投信連買':'4日'}},
+];
+
+const SPRING_DEFS = {
+  narrow:     { label:'窄幅盤整',   icon:'📏', desc:'近10日振幅<3%，價格緊縮蓄勢' },
+  low_vol:    { label:'量縮',       icon:'📉', desc:'近5日均量低於20日均量50%以上' },
+  ma_support: { label:'均線撐',     icon:'📐', desc:'股價貼近5日或20日均線支撐' },
+  chip_accum: { label:'籌碼累積',   icon:'🏦', desc:'法人持續買超，散戶籌碼轉移' },
+  bb_squeeze: { label:'布林收縮',   icon:'🔗', desc:'布林帶寬收縮至近期最窄，爆發前兆' },
+  none:       { label:'無明顯型態', icon:'➖', desc:'目前尚未形成壓縮彈簧結構' },
+};
+
+const CRITS = [
+  { id:'c1', title:'月營收創歷史新高', desc:'選擇查詢月份，確認單月營收突破歷史峰值', on:true },
+  { id:'c2', title:'毛利率優於比較基準', desc:'選擇季度與比較方式（季增或年增）', on:true },
+  { id:'c3', title:'營益率優於比較基準', desc:'本業獲利能力確認，選擇季度與比較方式', on:true },
+  { id:'c4', title:'法人籌碼條件', desc:'外資／投信連續買超天數門檻', on:false },
+  { id:'c5', title:'股價壓縮彈簧型態', desc:'選擇一或多種型態，符合任一即通過', on:false },
+];
+
+// c1 子選項：月份
+let c1Opts = { month: '4' }; // 4=4月（最新可查）
+
+// c2/c3 子選項：季度 + 比較基準
+let c2Opts = { quarter: 'Q1_2026', vs: 'QoQ' }; // QoQ季增, YoY年增
+let c3Opts = { quarter: 'Q1_2026', vs: 'QoQ' };
+
+// 法人子選項
+let instOpts = { type:'both', days:5 };
+// 彈簧子選項：多選，預設全選（除 none）
+let springOpts = { selected: new Set(['narrow','low_vol','ma_support','chip_accum','bb_squeeze']) };
+
+let critStates = {};
+CRITS.forEach(c => { critStates[c.id] = c.on; });
+let filtered = [];
+let deferredPrompt = null;
+
+// PWA install
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('btn-install').classList.add('show');
+});
+
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('btn-install').classList.remove('show');
+    });
+  } else {
+    switchTab('about');
+  }
+}
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── RENDER CRITERIA ──
+const QUARTER_OPTS = [
+  { val:'Q2_2026', label:'Q2 2026（預估）' },
+  { val:'Q1_2026', label:'Q1 2026' },
+  { val:'Q4_2025', label:'Q4 2025' },
+  { val:'Q3_2025', label:'Q3 2025' },
+  { val:'Q2_2025', label:'Q2 2025' },
+  { val:'Q3_2026', label:'Q3 2026（預估）' },
+  { val:'Q4_2026', label:'Q4 2026（預估）' },
+];
+const VS_OPTS = [
+  { val:'QoQ', label:'季增（vs 上季）' },
+  { val:'YoY', label:'年增（vs 去年同季）' },
+];
+const MONTH_OPTS = [
+  { val:'4', label:'4月（最新）' },
+  { val:'3', label:'3月' },
+  { val:'2', label:'2月' },
+  { val:'1', label:'1月' },
+  { val:'5',  label:'5月（待公布）' },
+  { val:'6',  label:'6月（待公布）' },
+  { val:'7',  label:'7月（待公布）' },
+  { val:'8',  label:'8月（待公布）' },
+  { val:'9',  label:'9月（待公布）' },
+  { val:'10', label:'10月（待公布）' },
+  { val:'11', label:'11月（待公布）' },
+  { val:'12', label:'12月（待公布）' },
+];
+
+function makeSubRow(label, opts, current, setter) {
+  return `<div class="sub-row">
+    <span class="sub-lbl">${label}</span>
+    <div class="sub-btns">
+      ${opts.map(o => `
+        <button class="sub-btn ${current===o.val?'active':''}"
+          onclick="${setter}('${o.val}')">${o.label}</button>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+function renderCrits() {
+  const el = document.getElementById('crit-list');
+  el.innerHTML = CRITS.map((c, idx) => {
+    const on = critStates[c.id];
+    let subHtml = '';
+    let title = c.title;
+
+    // ── c1：月份選擇 ──
+    if (c.id === 'c1' && on) {
+      subHtml = `<div class="inst-subopts" onclick="event.stopPropagation()">
+        ${makeSubRow('營收月份', MONTH_OPTS, c1Opts.month, 'setC1Month')}
+      </div>`;
+      const mLabel = MONTH_OPTS.find(o=>o.val===c1Opts.month)?.label || c1Opts.month+'月';
+      title = `${c1Opts.month}月營收創歷史新高`;
+    }
+
+    // ── c2：季度 + 比較基準 ──
+    if (c.id === 'c2' && on) {
+      subHtml = `<div class="inst-subopts" onclick="event.stopPropagation()">
+        ${makeSubRow('季度', QUARTER_OPTS, c2Opts.quarter, 'setC2Quarter')}
+        ${makeSubRow('比較方式', VS_OPTS, c2Opts.vs, 'setC2Vs')}
+      </div>`;
+      const qLabel = QUARTER_OPTS.find(o=>o.val===c2Opts.quarter)?.label||'';
+      const vsLabel = c2Opts.vs==='QoQ'?'季增':'年增';
+      title = `${qLabel} 毛利率${vsLabel}`;
+    }
+
+    // ── c3：季度 + 比較基準 ──
+    if (c.id === 'c3' && on) {
+      subHtml = `<div class="inst-subopts" onclick="event.stopPropagation()">
+        ${makeSubRow('季度', QUARTER_OPTS, c3Opts.quarter, 'setC3Quarter')}
+        ${makeSubRow('比較方式', VS_OPTS, c3Opts.vs, 'setC3Vs')}
+      </div>`;
+      const qLabel = QUARTER_OPTS.find(o=>o.val===c3Opts.quarter)?.label||'';
+      const vsLabel = c3Opts.vs==='QoQ'?'季增':'年增';
+      title = `${qLabel} 營益率${vsLabel}`;
+    }
+
+    // ── c4：法人 ──
+    if (c.id === 'c4' && on) {
+      const typeOpts = [
+        { val:'foreign', label:'外資' },
+        { val:'trust',   label:'投信' },
+        { val:'both',    label:'外資+投信（任一）' },
+      ];
+      subHtml = `<div class="inst-subopts" onclick="event.stopPropagation()">
+        ${makeSubRow('法人類型', typeOpts, instOpts.type, 'setInstType')}
+        ${makeSubRow('連買天數', [3,5,10].map(d=>({val:String(d),label:'≥'+d+'日'})), String(instOpts.days), 'setInstDays')}
+      </div>`;
+      const typeLabel = instOpts.type==='foreign'?'外資':instOpts.type==='trust'?'投信':'外資+投信';
+      title = `法人籌碼：${typeLabel} 連買≥${instOpts.days}日`;
+    }
+
+    // ── c5：彈簧型態 ──
+    if (c.id === 'c5' && on) {
+      const springKeys = ['narrow','low_vol','ma_support','chip_accum','bb_squeeze'];
+      const selectedCount = springKeys.filter(k => springOpts.selected.has(k)).length;
+      subHtml = `
+        <div class="inst-subopts" onclick="event.stopPropagation()">
+          <div class="sub-row" style="margin-bottom:6px">
+            <span class="sub-lbl">型態選擇</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--green);margin-left:auto">已選 ${selectedCount}/${springKeys.length}（任一符合通過）</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${springKeys.map(k => {
+              const def = SPRING_DEFS[k];
+              const active = springOpts.selected.has(k);
+              return `
+              <button class="spring-btn ${active?'active':''}" onclick="toggleSpring('${k}')">
+                <span class="spring-icon">${def.icon}</span>
+                <span class="spring-info">
+                  <span class="spring-name">${def.label}</span>
+                  <span class="spring-desc">${def.desc}</span>
+                </span>
+                <span class="spring-check">${active?'✓':'○'}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+      const selected = [...springOpts.selected].map(k => SPRING_DEFS[k]?.label).filter(Boolean);
+      title = selected.length > 0
+        ? '彈簧型態：' + (selected.length <= 2 ? selected.join('／') : selected.slice(0,2).join('／')+`…共${selected.length}項`)
+        : '彈簧型態：請至少選一項';
+    }
+
+    return `
+    <div class="crit-card ${on?'on':''}" onclick="toggleCrit('${c.id}')">
+      <div class="crit-num">${idx+1 < 10 ? '0'+(idx+1) : idx+1}</div>
+      <div class="crit-body">
+        <div class="crit-title">${title}</div>
+        <div class="crit-desc">${c.desc}</div>
+        ${subHtml}
+      </div>
+      <div class="crit-badge">${on?'✓':'○'}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCrit(id) { critStates[id] = !critStates[id]; renderCrits(); }
+
+// c1 setters
+function setC1Month(v)   { c1Opts.month = v;   renderCrits(); }
+// c2 setters
+function setC2Quarter(v) { c2Opts.quarter = v; renderCrits(); }
+function setC2Vs(v)      { c2Opts.vs = v;      renderCrits(); }
+// c3 setters
+function setC3Quarter(v) { c3Opts.quarter = v; renderCrits(); }
+function setC3Vs(v)      { c3Opts.vs = v;      renderCrits(); }
+// c4 setters
+function setInstType(val) { instOpts.type = val; renderCrits(); }
+function setInstDays(val) { instOpts.days = Number(val); renderCrits(); }
+// c5 setter
+function toggleSpring(key) {
+  if (springOpts.selected.has(key)) {
+    if (springOpts.selected.size > 1) springOpts.selected.delete(key);
+  } else {
+    springOpts.selected.add(key);
+  }
+  renderCrits();
+}
+
+// ── FINMIND CONFIG ──
+const FM_BASE = 'https://api.finmindtrade.com/api/v4/data';
+let FM_TOKEN = localStorage.getItem('fm_token') || '';
+
+function saveToken(t) {
+  FM_TOKEN = t.trim();
+  localStorage.setItem('fm_token', FM_TOKEN);
+}
+
+function applyToken() {
+  const val = document.getElementById('token-input').value.trim();
+  if (!val) return;
+  saveToken(val);
+  document.getElementById('token-input').value = '';
+  document.getElementById('token-status').textContent = '✓ Token 已更新儲存';
+  document.getElementById('token-status').style.color = 'var(--green)';
+}
+
+// ── API HELPERS ──
+async function fmFetch(dataset, params) {
+  const p = new URLSearchParams({ dataset, ...params });
+  const res = await fetch(`${FM_BASE}?${p}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${FM_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = await res.json();
+  if (j.status !== 200) throw new Error(j.msg || `API status ${j.status}`);
+  return j.data;
+}
+
+// 取得月營收（全市場單月）
+async function fetchMonthRevenue(year, month) {
+  const date = `${year}-${String(month).padStart(2,'0')}-01`;
+  return fmFetch('TaiwanStockMonthRevenue', { start_date: date, end_date: date });
+}
+
+// 取得單檔財報（損益表）
+async function fetchFinancial(stockId, startDate) {
+  return fmFetch('TaiwanStockFinancialStatements', { stock_id: stockId, start_date: startDate });
+}
+
+// 取得三大法人（單檔，近30日）
+async function fetchInstitutional(stockId, startDate) {
+  return fmFetch('TaiwanInstitutionalInvestorsBuySell', { stock_id: stockId, start_date: startDate });
+}
+
+// 取得股票基本資訊（產業分類）
+async function fetchStockInfo() {
+  return fmFetch('TaiwanStockInfo', {});
+}
+
+// ── 計算法人連買天數 ──
+function calcConsecBuyDays(rows, type) {
+  // type: 'Foreign_Investor' | 'Investment_Trust'
+  const sorted = rows
+    .filter(r => r.name === type)
+    .sort((a,b) => b.date.localeCompare(a.date));
+  let days = 0;
+  for (const r of sorted) {
+    if ((r.buy - r.sell) > 0) days++;
+    else break;
+  }
+  return days;
+}
+
+// ── 從損益表取毛利率/營益率 ──
+function extractMargins(rows, quarter) {
+  // quarter: 'Q1_2026' → year=2026, q=1
+  const [q, y] = quarter.split('_');
+  const qNum = parseInt(q.replace('Q',''));
+  const year = parseInt(y);
+  // FinMind date format: YYYY-MM-DD, Q1=03-31, Q2=06-30, Q3=09-30, Q4=12-31
+  const qMonth = { 1:'03-31', 2:'06-30', 3:'09-30', 4:'12-31' };
+  const targetDate = `${year}-${qMonth[qNum]}`;
+
+  const row = rows.find(r => r.date === targetDate);
+  if (!row) return null;
+
+  // FinMind type欄位
+  const grossProfit = rows.find(r => r.date === targetDate && r.type === 'GrossProfit')?.value || 0;
+  const revenue     = rows.find(r => r.date === targetDate && r.type === 'Revenue')?.value || 1;
+  const opIncome    = rows.find(r => r.date === targetDate && r.type === 'OperatingIncome')?.value || 0;
+
+  return {
+    gm: revenue ? parseFloat(((grossProfit / revenue) * 100).toFixed(1)) : null,
+    op: revenue ? parseFloat(((opIncome    / revenue) * 100).toFixed(1)) : null,
+  };
+}
+
+// 取上一季 key
+function prevQuarter(qKey) {
+  const [q, y] = qKey.split('_');
+  const qNum = parseInt(q.replace('Q',''));
+  const year = parseInt(y);
+  if (qNum === 1) return `Q4_${year-1}`;
+  return `Q${qNum-1}_${year}`;
+}
+
+// 取去年同季 key
+function yoyQuarter(qKey) {
+  const [q, y] = qKey.split('_');
+  return `${q}_${parseInt(y)-1}`;
+}
+
+// ── 進度條更新 ──
+function setProgress(pct, msg) {
+  const btn = document.getElementById('screen-btn');
+  btn.textContent = `🔄 ${msg} ${pct}%`;
+}
+
+// ── MAIN SCREEN FUNCTION ──
+async function runScreen() {
+  if (!FM_TOKEN) {
+    alert('請先在「設定」頁面填入 FinMind Token');
+    return;
+  }
+  const btn = document.getElementById('screen-btn');
+  btn.disabled = true;
+  switchTab('result');
+
+  const revMin    = parseFloat(document.getElementById('f-rev').value) || 0;
+  const gmMin     = parseFloat(document.getElementById('f-gm').value) || 0;
+  const scoreMin  = parseFloat(document.getElementById('f-score').value) || 0;
+  const needHist  = critStates['c1'];
+  const needGM    = critStates['c2'];
+  const needOP    = critStates['c3'];
+  const needInst  = critStates['c4'];
+  const needSpring = critStates['c5'];
+
+  // 解析月份與季度
+  const revMonth  = parseInt(c1Opts.month);
+  const revYear   = 2026;
+  const gmQuarter = c2Opts.quarter;
+  const opQuarter = c3Opts.quarter;
+
+  try {
+    // ── STEP 1: 抓月營收全市場 ──
+    setProgress(5, '抓取月營收');
+    const revData = await fetchMonthRevenue(revYear, revMonth);
+
+    // 計算 YoY
+    // revData: [{stock_id, revenue, last_year_revenue, ...}]
+    let candidates = revData
+      .filter(r => r.revenue > 0 && r.last_year_revenue > 0)
+      .map(r => {
+        const yoy = parseFloat(((r.revenue - r.last_year_revenue) / r.last_year_revenue * 100).toFixed(1));
+        const isHist = r.revenue >= (r.revenue_accum / (revMonth) * revMonth); // 簡易判斷
+        return {
+          code: r.stock_id,
+          name: r.company_name || r.stock_id,
+          revenue: r.revenue,
+          last_year_revenue: r.last_year_revenue,
+          rev_yoy: yoy,
+          hist: r.revenue >= r.last_year_revenue, // 優於去年同期（歷史新高需更多資料）
+        };
+      })
+      .filter(r => r.rev_yoy >= revMin);
+
+    setProgress(20, `營收篩出 ${candidates.length} 檔`);
+
+    // ── STEP 2: 抓股票產業資訊 ──
+    setProgress(25, '抓取產業分類');
+    let stockInfoMap = {};
+    try {
+      const infoData = await fetchStockInfo();
+      infoData.forEach(r => {
+        stockInfoMap[r.stock_id] = { sector: r.industry_category, name: r.stock_name };
+      });
+    } catch(e) { console.warn('StockInfo failed', e); }
+
+    // 補上名稱與產業
+    candidates = candidates.map(c => ({
+      ...c,
+      name: stockInfoMap[c.code]?.name || c.name,
+      sector: stockInfoMap[c.code]?.sector || '—',
+    }));
+
+    // 產業過濾
+    const sectorFilter = document.getElementById('f-sector').value;
+    if (sectorFilter) {
+      candidates = candidates.filter(c => c.sector.includes(sectorFilter));
+    }
+
+    // 若無需財報/法人條件，直接算分輸出
+    if (!needGM && !needOP && !needInst) {
+      filtered = candidates.map(c => ({
+        ...c,
+        gm: null, gm_chg: null, op: null, op_chg: null,
+        inst_f: 0, inst_t: 0,
+        score: Math.min(99, Math.round(50 + c.rev_yoy * 0.3)),
+        risk: c.rev_yoy > 80 ? 'M' : 'L',
+        tags: [c.hist ? 'rev' : null].filter(Boolean),
+        analysis: `${c.name}（${c.code}）${revMonth}月營收 ${(c.revenue/1e8).toFixed(2)}億，YoY +${c.rev_yoy}%。`,
+        metrics: {
+          [`${revMonth}月營收`]: `${(c.revenue/1e8).toFixed(2)}億`,
+          'YoY': `↑${c.rev_yoy}%`,
+          '去年同期': `${(c.last_year_revenue/1e8).toFixed(2)}億`,
+        }
+      })).sort((a,b) => b.rev_yoy - a.rev_yoy);
+      renderResults();
+      btn.textContent = '⚡ 開始篩選'; btn.disabled = false;
+      return;
+    }
+
+    // ── STEP 3: 批次抓財報（限前50檔避免超限）──
+    const batchLimit = 50;
+    const batch = candidates.slice(0, batchLimit);
+    const finResults = [];
+    const instResults = [];
+
+    // 財報查詢起始日（往前8季）
+    const finStart = '2024-01-01';
+    const instStart = (() => {
+      const d = new Date(); d.setDate(d.getDate() - 45);
+      return d.toISOString().slice(0,10);
+    })();
+
+    for (let i = 0; i < batch.length; i++) {
+      const c = batch[i];
+      setProgress(30 + Math.round(i / batch.length * 50), `財報 ${i+1}/${batch.length}`);
+
+      let gmVal = null, opVal = null, gmChg = null, opChg = null;
+      let instF = 0, instT = 0;
+
+      try {
+        const finData = await fetchFinancial(c.code, finStart);
+        const cur = extractMargins(finData, gmQuarter);
+        if (cur) {
+          gmVal = cur.gm; opVal = cur.op;
+          // 比較基準
+          const cmpKey = c2Opts.vs === 'QoQ' ? prevQuarter(gmQuarter) : yoyQuarter(gmQuarter);
+          const cmp = extractMargins(finData, cmpKey);
+          if (cmp && cur.gm !== null && cmp.gm !== null) gmChg = parseFloat((cur.gm - cmp.gm).toFixed(1));
+          const cmpOKey = c3Opts.vs === 'QoQ' ? prevQuarter(opQuarter) : yoyQuarter(opQuarter);
+          const cmpO = extractMargins(finData, cmpOKey);
+          if (cmpO && cur.op !== null && cmpO.op !== null) opChg = parseFloat((cur.op - cmpO.op).toFixed(1));
+        }
+      } catch(e) { console.warn(`Financial ${c.code}`, e); }
+
+      if (needInst) {
+        try {
+          const instData = await fetchInstitutional(c.code, instStart);
+          instF = calcConsecBuyDays(instData, 'Foreign_Investor');
+          instT = calcConsecBuyDays(instData, 'Investment_Trust');
+        } catch(e) { console.warn(`Inst ${c.code}`, e); }
+      }
+
+      finResults.push({ code: c.code, gmVal, opVal, gmChg, opChg });
+      instResults.push({ code: c.code, instF, instT });
+
+      // Rate limit 保護
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    // ── STEP 4: 合併 & 過濾 ──
+    setProgress(90, '計算評分');
+    filtered = batch.map(c => {
+      const fin  = finResults.find(f => f.code === c.code) || {};
+      const inst = instResults.find(f => f.code === c.code) || {};
+      return { ...c,
+        gm: fin.gmVal, gm_chg: fin.gmChg,
+        op: fin.opVal, op_chg: fin.opChg,
+        inst_f: inst.instF || 0,
+        inst_t: inst.instT || 0,
+      };
+    }).filter(s => {
+      if (s.gm !== null && s.gm < gmMin) return false;
+      if (needGM && (s.gm_chg === null || s.gm_chg <= 0)) return false;
+      if (needOP && (s.op_chg === null || s.op_chg <= 0)) return false;
+      if (needHist && !s.hist) return false;
+      if (needInst) {
+        const d = instOpts.days;
+        if (instOpts.type === 'foreign' && s.inst_f < d) return false;
+        if (instOpts.type === 'trust'   && s.inst_t < d) return false;
+        if (instOpts.type === 'both'    && s.inst_f < d && s.inst_t < d) return false;
+      }
+      return true;
+    }).map(s => {
+      // 綜合評分
+      let score = 50;
+      if (s.rev_yoy > 0)  score += Math.min(20, s.rev_yoy * 0.15);
+      if (s.gm_chg > 0)   score += Math.min(10, s.gm_chg * 2);
+      if (s.op_chg > 0)   score += Math.min(10, s.op_chg * 2);
+      if (s.inst_f >= 10) score += 5;
+      if (s.inst_t >= 10) score += 5;
+      score = Math.min(99, Math.round(score));
+
+      const tags = [
+        s.hist ? 'rev' : null,
+        s.gm_chg > 0 ? 'gm' : null,
+        s.op_chg > 0 ? 'op' : null,
+        (s.inst_f >= 3 || s.inst_t >= 3) ? 'inst' : null,
+      ].filter(Boolean);
+
+      return { ...s, score, tags,
+        risk: score >= 85 ? 'M' : 'L',
+        analysis: `${s.name}（${s.code}）${revMonth}月營收 YoY <strong>+${s.rev_yoy}%</strong>。
+          ${s.gm !== null ? `${gmQuarter.replace('_',' ')} 毛利率 ${s.gm}%（${s.gm_chg >= 0 ? '+' : ''}${s.gm_chg ?? '—'}pp）。` : ''}
+          ${s.op !== null ? `營益率 ${s.op}%（${s.op_chg >= 0 ? '+' : ''}${s.op_chg ?? '—'}pp）。` : ''}
+          ${s.inst_f > 0 ? `外資連買 ${s.inst_f} 日。` : ''}
+          ${s.inst_t > 0 ? `投信連買 ${s.inst_t} 日。` : ''}
+          <br><br><span class="rw">⚠ 風險：</span>本資料來自 FinMind，請自行確認財報與最新公告。`,
+        metrics: {
+          [`${revMonth}月營收`]: `${(s.revenue/1e8).toFixed(2)}億`,
+          'YoY': `↑${s.rev_yoy}%`,
+          '毛利率': s.gm !== null ? `${s.gm}%` : '—',
+          '毛利季增': s.gm_chg !== null ? `${s.gm_chg >= 0 ?'+':''}${s.gm_chg}pp` : '—',
+          '營益率': s.op !== null ? `${s.op}%` : '—',
+          '外資連買': `${s.inst_f}日`,
+          '投信連買': `${s.inst_t}日`,
+        }
+      };
+    }).sort((a,b) => b.score - a.score);
+
+    if (scoreMin > 0) filtered = filtered.filter(s => s.score >= scoreMin);
+
+    setProgress(100, '完成');
+    renderResults();
+
+  } catch(err) {
+    console.error(err);
+    let hint = err.message;
+    if (err.message.includes('Failed to fetch')) {
+      hint = '網路無法連線 FinMind API。\n\n可能原因：\n① 從本地 file:// 開啟（必須部署到 GitHub Pages 才能運作）\n② 網路問題或 API 伺服器暫時無法使用';
+    } else if (err.message.includes('401') || err.message.includes('403')) {
+      hint = 'Token 無效或已過期，請至「安裝」頁更新 Token';
+    } else if (err.message.includes('429')) {
+      hint = 'API 請求超過限制（600次/小時），請稍後再試';
+    }
+    document.getElementById('stock-list').innerHTML =
+      `<div class="empty"><div class="empty-icon">⚠</div>
+      <div style="white-space:pre-line;text-align:left;font-size:11px;line-height:1.8;">${hint}</div></div>`;
+    document.getElementById('st-count').textContent = '0';
+  }
+
+  btn.textContent = '⚡ 開始篩選';
+  btn.disabled = false;
+}
+
+// ── RENDER RESULTS ──
+function renderResults() {
+  const list = document.getElementById('stock-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div>無符合條件標的<br>請調整篩選參數</div>`;
+    document.getElementById('st-count').textContent = '0';
+    document.getElementById('st-rev').textContent = '-';
+    document.getElementById('st-gm').textContent = '-';
+    return;
+  }
+  const avgRev = (filtered.reduce((s,x) => s + (x.rev_yoy||0), 0) / filtered.length).toFixed(0);
+  const gmList = filtered.filter(x => x.gm !== null);
+  const avgGm  = gmList.length ? (gmList.reduce((s,x) => s + x.gm, 0) / gmList.length).toFixed(1) : '—';
+  document.getElementById('st-count').textContent = filtered.length;
+  document.getElementById('st-rev').textContent = '+' + avgRev + '%';
+  document.getElementById('st-gm').textContent = avgGm !== '—' ? avgGm + '%' : '—';
+
+  const tagMap = { rev:'史高', gm:'毛利↑', op:'營益↑', inst:'法人' };
+  const tagCls = { rev:'t-rev', gm:'t-gm', op:'t-op', inst:'t-inst' };
+
+  list.innerHTML = filtered.map(s => {
+    const sc = s.score >= 85 ? 'sc-a' : s.score >= 70 ? 'sc-b' : 'sc-c';
+    const rowCls = s.score >= 85 ? 's-gold' : '';
+    const tags = (s.tags || []).map(t => `<span class="tag ${tagCls[t]}">${tagMap[t]}</span>`).join('');
+    const histTag = s.hist ? `<span class="tag t-hist" style="font-size:8px">✦優於去年</span>` : '';
+    return `
+    <div class="stock-row ${rowCls}" onclick="showDetail('${s.code}')">
+      <div class="stock-left-bar"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="sr-top">
+          <div>
+            <div class="sr-code">${s.code}</div>
+            <div class="sr-name">${s.name} · ${s.sector}</div>
+          </div>
+          <div class="sr-score-wrap">
+            <div class="sr-score ${sc}">${s.score}</div>
+            <div class="sr-score-lbl">評分</div>
+          </div>
+        </div>
+        <div class="sr-metrics">
+          <div class="sr-m">
+            <div class="sr-m-val num-up">+${s.rev_yoy}%</div>
+            <div class="sr-m-lbl">營收YoY</div>
+          </div>
+          <div class="sr-m">
+            <div class="sr-m-val num-n">${s.gm !== null ? s.gm + '%' : '—'}</div>
+            <div class="sr-m-lbl">毛利率</div>
+          </div>
+          <div class="sr-m">
+            <div class="sr-m-val ${s.gm_chg > 0 ? 'num-up' : s.gm_chg < 0 ? 'num-dn' : 'num-n'}">
+              ${s.gm_chg !== null ? (s.gm_chg >= 0 ? '+' : '') + s.gm_chg + 'pp' : '—'}
+            </div>
+            <div class="sr-m-lbl">毛利季增</div>
+          </div>
+        </div>
+        <div class="sr-tags">${histTag}${tags}
+          <span class="risk risk-${s.risk}" style="margin-left:auto">${s.risk}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DETAIL SHEET ──
+function showDetail(code) {
+  const s = filtered.find(x => x.code === code);
+  if (!s) return;
+  document.getElementById('sh-code').textContent = `${s.code} ${s.name}`;
+  document.getElementById('sh-name').textContent = `${s.sector} ｜ 評分 ${s.score} ｜ 風險 ${s.risk}`;
+  document.getElementById('sh-metrics').innerHTML = Object.entries(s.metrics || {}).map(([k,v]) => `
+    <div class="m-box">
+      <div class="m-lbl">${k}</div>
+      <div class="m-val" style="color:${String(v).includes('↑') ? 'var(--red)' : 'var(--gold)'}">${v}</div>
+    </div>`).join('');
+  document.getElementById('sh-analysis').innerHTML = s.analysis || '—';
+  document.getElementById('detail-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSheet() {
+  document.getElementById('detail-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function sheetBgClick(e) {
+  if (e.target === document.getElementById('detail-sheet')) closeSheet();
+}
+
+// ── TABS ──
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['screen','result','about'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.toggle('active', p.id === 'page-' + id);
+  });
+}
+
+// ── INIT ──
+// 預填 token（從 localStorage 讀取）
+const storedToken = localStorage.getItem('fm_token');
+if (!storedToken) {
+  // 寫入預設 token
+  saveToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoia3VvaW90MTIiLCJlbWFpbCI6InR1bmdsdW5nLmt1b0BvdXRsb29rLmNvbSIsInRva2VuX3ZlcnNpb24iOjF9.K3hlbonCqIZ8ssMuMFavlz63xfpuo3AfYMYjE1HRyGI');
+}
+renderCrits();
+document.getElementById('stock-list').innerHTML =
+  `<div class="empty"><div class="empty-icon">🎯</div>設定篩選條件後<br>點擊「開始篩選」</div>`;
+</script>
+</body>
+</html>

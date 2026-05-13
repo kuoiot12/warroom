@@ -1,0 +1,26 @@
+{
+  "name": "豐勝戰隊 選股戰情室",
+  "short_name": "戰情室",
+  "description": "台股選股戰情室 — 豐勝戰隊第27大隊條件篩選系統",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#040A14",
+  "theme_color": "#040A14",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "utilities"],
+  "lang": "zh-TW"
+}
