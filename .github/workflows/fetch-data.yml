@@ -26,9 +26,12 @@ jobs:
           BASE  = 'https://api.finmindtrade.com/api/v4/data'
 
           today = datetime.date.today()
-          # 月營收：取當月與上月（因公布時間差異）
+          # 月營收：取近3個月確保能抓到資料
           this_month  = today.replace(day=1).strftime('%Y-%m-%d')
           last_month  = (today.replace(day=1) - datetime.timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d')
+          two_months_ago = (today.replace(day=1) - datetime.timedelta(days=32)).replace(day=1).strftime('%Y-%m-%d')
+          rev_start = two_months_ago
+          rev_end   = today.strftime('%Y-%m-%d')
           fin_start   = (today.replace(year=today.year-2)).strftime('%Y-%m-%d')  # 財報取近2年
           inst_start  = (today - datetime.timedelta(days=60)).strftime('%Y-%m-%d')
 
@@ -47,24 +50,31 @@ jobs:
             'last_month': last_month,
           }
 
-          # 1. 月營收（本月）
-          print('抓取本月月營收...')
+          # 1. 月營收（近3個月，取最新有資料的月份）
+          print('抓取月營收...')
           try:
-            rev_this = fm_get('TaiwanStockMonthRevenue', f'&start_date={this_month}&end_date={this_month}')
-            result['revenue_this'] = rev_this
-            print(f'  本月: {len(rev_this)} 筆')
+            rev_all = fm_get('TaiwanStockMonthRevenue', f'&start_date={rev_start}&end_date={rev_end}')
+            print(f'  月營收原始筆數: {len(rev_all)}')
+            # 找出最新月份
+            if rev_all:
+              dates = sorted(set(r['date'] for r in rev_all), reverse=True)
+              print(f'  可用月份: {dates[:3]}')
+              latest_date = dates[0]
+              prev_date   = dates[1] if len(dates) > 1 else None
+              rev_this = [r for r in rev_all if r['date'] == latest_date]
+              rev_last = [r for r in rev_all if r['date'] == prev_date] if prev_date else []
+              result['this_month']    = latest_date
+              result['last_month']    = prev_date or ''
+              result['revenue_this']  = rev_this
+              result['revenue_last']  = rev_last
+              print(f'  最新月({latest_date}): {len(rev_this)} 筆')
+              print(f'  上月({prev_date}): {len(rev_last)} 筆')
+            else:
+              result['revenue_this'] = []
+              result['revenue_last'] = []
           except Exception as e:
-            print(f'  本月失敗: {e}')
+            print(f'  月營收失敗: {e}')
             result['revenue_this'] = []
-
-          # 2. 月營收（上月，補充用）
-          print('抓取上月月營收...')
-          try:
-            rev_last = fm_get('TaiwanStockMonthRevenue', f'&start_date={last_month}&end_date={last_month}')
-            result['revenue_last'] = rev_last
-            print(f'  上月: {len(rev_last)} 筆')
-          except Exception as e:
-            print(f'  上月失敗: {e}')
             result['revenue_last'] = []
 
           # 3. 股票基本資料（產業分類）
