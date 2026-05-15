@@ -1086,7 +1086,7 @@ async function runScreen() {
       return {
         ...s, score, tags,
         risk: score >= 85 ? 'M' : 'L',
-        analysis: `${c.name}（${c.code}）${actualMonth}月營收 YoY <strong>+${c.rev_yoy}%</strong>。
+        analysis: `${s.name}（${s.code}）${actualMonth}月營收 YoY <strong>+${s.rev_yoy}%</strong>。
           ${s.gm != null ? `${gmQuarter.replace('_',' ')} 毛利率 ${s.gm}%（${s.gm_chg != null ? (s.gm_chg >= 0?'+':'')+s.gm_chg+'pp' : '—'}）。` : ''}
           ${s.op != null ? `營益率 ${s.op}%（${s.op_chg != null ? (s.op_chg >= 0?'+':'')+s.op_chg+'pp' : '—'}）。` : ''}
           ${s.inst_f > 0 ? `外資連買 ${s.inst_f} 日。` : ''}
@@ -1223,12 +1223,6 @@ function switchTab(id) {
 }
 
 // ── INIT ──
-// 預填 token（從 localStorage 讀取）
-const storedToken = localStorage.getItem('fm_token');
-if (!storedToken) {
-  // 寫入預設 token
-  saveToken('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoia3VvaW90MTIiLCJlbWFpbCI6InR1bmdsdW5nLmt1b0BvdXRsb29rLmNvbSIsInRva2VuX3ZlcnNpb24iOjF9.K3hlbonCqIZ8ssMuMFavlz63xfpuo3AfYMYjE1HRyGI');
-}
 renderCrits();
 document.getElementById('stock-list').innerHTML =
   `<div class="empty"><div class="empty-icon">🎯</div>設定篩選條件後<br>點擊「開始篩選」</div>`;
