@@ -988,10 +988,14 @@ async function runScreen() {
 
     setProgress(20, '計算月營收');
 
-    // 選取對應月份資料（本月或上月）
-    const revData = data.this_month?.startsWith(`2026-0${revMonth}`) || 
-                    data.this_month?.startsWith(`2026-${String(revMonth).padStart(2,'0')}`)
-      ? data.revenue_this : data.revenue_last;
+    // 自動選有資料的月份（本月優先，否則用上月）
+    const revData = (data.revenue_this && data.revenue_this.length > 0)
+      ? data.revenue_this
+      : (data.revenue_last || []);
+
+    const actualMonth = (data.revenue_this && data.revenue_this.length > 0)
+      ? new Date(data.this_month).getMonth() + 1
+      : new Date(data.last_month).getMonth() + 1;
 
     // 建立股票資訊 map
     const infoMap = {};
@@ -1082,14 +1086,14 @@ async function runScreen() {
       return {
         ...s, score, tags,
         risk: score >= 85 ? 'M' : 'L',
-        analysis: `${s.name}（${s.code}）${revMonth}月營收 YoY <strong>+${s.rev_yoy}%</strong>。
+        analysis: `${c.name}（${c.code}）${actualMonth}月營收 YoY <strong>+${c.rev_yoy}%</strong>。
           ${s.gm != null ? `${gmQuarter.replace('_',' ')} 毛利率 ${s.gm}%（${s.gm_chg != null ? (s.gm_chg >= 0?'+':'')+s.gm_chg+'pp' : '—'}）。` : ''}
           ${s.op != null ? `營益率 ${s.op}%（${s.op_chg != null ? (s.op_chg >= 0?'+':'')+s.op_chg+'pp' : '—'}）。` : ''}
           ${s.inst_f > 0 ? `外資連買 ${s.inst_f} 日。` : ''}
           ${s.inst_t > 0 ? `投信連買 ${s.inst_t} 日。` : ''}
           <br><br><span class="rw">⚠ 風險：</span>資料更新時間：${data.updated_at}，請自行確認最新公告。`,
         metrics: {
-          [`${revMonth}月營收`]: `${(s.revenue/1e8).toFixed(2)}億`,
+          [`${actualMonth}月營收`]: `${(s.revenue/1e8).toFixed(2)}億`,
           'YoY': `↑${s.rev_yoy}%`,
           '毛利率': s.gm != null ? `${s.gm}%` : '—',
           '毛利增減': s.gm_chg != null ? `${s.gm_chg >= 0?'+':''}${s.gm_chg}pp` : '—',
